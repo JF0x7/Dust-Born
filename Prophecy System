@@ -1,0 +1,47 @@
+prophecy = {
+    "fate": {
+        "score": 0,
+        "description": "You will die alone.",
+        "thresholds": {
+            10: "Visions of solitude haunt Jeremiah.",
+            20: "Allies begin to distrust him.",
+            30: "Prophecy manifests: death alone is inevitable."
+        }
+    },
+    "defiance": {
+        "score": 0,
+        "description": "I choose my own path.",
+        "thresholds": {
+            10: "Jeremiah questions the prophets openly.",
+            20: "He inspires others to rebel.",
+            30: "Prophecy shattered: Jeremiah rewrites destiny."
+        }
+    },
+    "survival": {
+        "score": 0,
+        "description": "I do what it takes to live.",
+        "thresholds": {
+            10: "Jeremiah scavenges and adapts.",
+            20: "Survival instincts override compassion.",
+            30: "Jeremiah becomes a legend of endurance."
+        }
+    },
+    "love": {
+        "score": 0,
+        "description": "Connection defies prophecy.",
+        "thresholds": {
+            10: "Jeremiah feels warmth in companionship.",
+            20: "Romance alters his destiny.",
+            30: "Love transcends prophecy — eternal bond."
+        }
+    },
+    "sacrifice": {
+        "score": 0,
+        "description": "Only through loss can destiny change.",
+        "thresholds": {
+            10: "Jeremiah gives up resources for others.",
+            20: "He sacrifices allies or dreams.",
+            30: "Ultimate sacrifice rewrites prophecy."
+        }
+    }
+}
