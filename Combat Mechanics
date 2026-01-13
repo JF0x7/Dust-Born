@@ -1,47 +1,185 @@
 import random
 
 class Character:
-    def __init__(self, name, health, stamina, attack, defense):
+    def __init__(self, name, health, stamina, attack, defense, morale=10, loyalty=5):
         self.name = name
         self.health = health
         self.stamina = stamina
         self.attack = attack
         self.defense = defense
+        self.morale = morale  # Affects choices, critical chance
+        self.loyalty = loyalty  # Affects companion actions (if any)
 
     def is_alive(self):
         return self.health > 0
 
     def take_damage(self, damage):
-        reduced = max(0, damage - self.defense)
+        reduced = max(1, damage - self.defense)
         self.health -= reduced
-        print(f"{self.name} takes {reduced} damage! Health now: {self.health}")
+        print(f"  {self.name} takes {reduced} damage! Health: {self.health}")
+        if self.health <= 0:
+            print(f"  {self.name} has fallen.")
 
     def basic_attack(self, target):
         if self.stamina <= 0:
             print(f"{self.name} is too exhausted to attack!")
             return
-        damage = random.randint(self.attack - 2, self.attack + 2)
-        print(f"{self.name} attacks {target.name} for {damage}!")
+        base_damage = random.randint(self.attack - 2, self.attack + 2)
+        crit = random.random() < (self.morale / 100)  # Higher morale = more crits
+        damage = base_damage * 2 if crit else base_damage
+        if crit:
+            print(f"{self.name} lands a CRITICAL hit on {target.name} for {damage}!")
+        else:
+            print(f"{self.name} attacks {target.name} for {damage}.")
         target.take_damage(damage)
         self.stamina -= 5
 
     def rest(self):
-        self.stamina += 10
-        print(f"{self.name} rests and regains stamina. Stamina now: {self.stamina}")
+        self.stamina = min(100, self.stamina + 15)
+        self.health = min(100, self.health + 5)
+        print(f"{self.name} rests. Health: {self.health}, Stamina: {self.stamina}")
+
+    def show_stats(self):
+        print(f"[{self.name}] Health: {self.health} | Stamina: {self.stamina} | Morale: {self.morale}")
 
 
-# Example setup
-jeremiah = Character("Jeremiah", health=100, stamina=50, attack=15, defense=5)
-roman_soldier = Character("Roman Soldier", health=80, stamina=40, attack=12, defense=3)
+# ENCOUNTERS
+class Encounter:
+    def __init__(self, visitor_type, visitor_name, health, attack, defense, dialogue, hostile=False):
+        self.visitor_type = visitor_type  # "Roman", "Beast", "Stranger", "Ally"
+        self.visitor_name = visitor_name
+        self.health = health
+        self.attack = attack
+        self.defense = defense
+        self.dialogue = dialogue
+        self.hostile = hostile
 
-# Simple combat loop
-while jeremiah.is_alive() and roman_soldier.is_alive():
-    jeremiah.basic_attack(roman_soldier)
-    if roman_soldier.is_alive():
-        roman_soldier.basic_attack(jeremiah)
+    def interact(self, player):
+        print(f"\n>>> A {self.visitor_type} appears at your door: {self.visitor_name}")
+        print(f'"{self.dialogue}"')
+        
+        if self.hostile:
+            print("They seem aggressive.")
+            choice = input("\nDo you: [F]ight, [T]ry to talk, or [R]un? ").upper()
+        else:
+            print("They do not seem immediately hostile.")
+            choice = input("\nDo you: [T]alk, [A]ttack anyway, or [I]gnore? ").upper()
 
-print("Combat ended.")
-if jeremiah.is_alive():
-    print("Jeremiah is victorious!")
-else:
-    print("Jeremiah has fallen...")
+        # Process choice
+        if choice == "F" and self.hostile:
+            return self.fight(player)
+        elif choice == "T":
+            return self.talk(player)
+        elif choice == "R" and self.hostile:
+            return self.escape(player)
+        elif choice == "A" and not self.hostile:
+            return self.fight(player)
+        elif choice == "I" and not self.hostile:
+            print(f"You ignore {self.visitor_name}. They leave, looking disappointed.")
+            player.morale -= 1
+            return "ignored"
+        else:
+            print("Invalid choice. They grow impatient...")
+            return self.fight(player)
+
+    def fight(self, player):
+        enemy = Character(self.visitor_name, self.health, 50, self.attack, self.defense)
+        print(f"\n--- BATTLE START: {player.name} vs {enemy.visitor_name} ---")
+        while player.is_alive() and enemy.is_alive():
+            player.basic_attack(enemy)
+            if enemy.is_alive():
+                enemy.basic_attack(player)
+        if player.is_alive():
+            print(f"\nYou defeated {enemy.name}.")
+            player.morale += 2
+            return "won"
+        else:
+            return "lost"
+
+    def talk(self, player):
+        success_chance = player.morale / 20.0  # Higher morale = better talk success
+        if random.random() < success_chance:
+            print(f"\nThrough careful words, you calm {self.visitor_name}.")
+            if self.hostile:
+                print("They lower their weapon and leave.")
+            else:
+                print("They share useful information before moving on.")
+            player.morale += 3
+            return "talk_success"
+        else:
+            print(f"\n{self.visitor_name} isn't convinced. They attack!")
+            return self.fight(player)
+
+    def escape(self, player):
+        escape_chance = 0.6
+        if random.random() < escape_chance:
+            print(f"\nYou successfully flee from {self.visitor_name}.")
+            player.stamina -= 10
+            return "escaped"
+        else:
+            print(f"\nYou try to run, but {self.visitor_name} catches you!")
+            return self.fight(player)
+
+
+# RANDOM VISITOR GENERATOR
+def random_visitor():
+    visitors = [
+        Encounter("Roman Soldier", "Legionary Marcus", 70, 14, 6, 
+                  "By order of the Emperor, open this door!", hostile=True),
+        Encounter("Desert Beast", "Sand Serpent", 50, 18, 2, 
+                  "Hsssssss...", hostile=True),
+        Encounter("Wandering Merchant", "Ezra of the Dunes", 40, 8, 3, 
+                  "I have water and stories to trade. Interested?", hostile=False),
+        Encounter("Mystic Wanderer", "Sariah the Seer", 60, 10, 4, 
+                  "The sands speak of your fate, Jeremiah.", hostile=False),
+        Encounter("Roman Scout", "Scout Valerius", 55, 12, 5, 
+                  "We're searching for rebels. Have you seen any?", hostile=True),
+        Encounter("Lost Tribal Hunter", "Kaelen of the Scorpions", 65, 16, 5, 
+                  "I mean no harm. I seek shelter from the storm.", hostile=False),
+    ]
+    return random.choice(visitors)
+
+
+# GAME LOOP WITH DOOR ENCOUNTERS
+def main():
+    player = Character("Jeremiah", 100, 60, 16, 5)
+    day = 1
+    
+    print("\n=== DUST-BORN: THE DOOR DECISION ===\n")
+    
+    while player.is_alive() and day <= 7:
+        print(f"\n--- DAY {day} ---")
+        player.show_stats()
+        
+        # Random visitor arrives
+        visitor = random_visitor()
+        result = visitor.interact(player)
+        
+        # Handle results
+        if result == "lost":
+            print("\nJeremiah has fallen... The desert claims another.")
+            break
+        elif result == "won":
+            print("You survived the encounter.")
+        elif result == "escaped":
+            print("You live to see another day, but your stamina is drained.")
+        elif result == "talk_success":
+            print("Diplomacy prevails. Your spirits lift.")
+        
+        # End of day rest
+        if player.is_alive():
+            rest_choice = input("\nRest for the night? [Y/N]: ").upper()
+            if rest_choice == "Y":
+                player.rest()
+            day += 1
+    
+    # Ending
+    if player.is_alive():
+        print(f"\nAfter {day-1} days, Jeremiah still stands. His legend grows...")
+    else:
+        print("\nThe prophecies were true. Alone in the dust, his story ends.")
+
+
+# Run the game
+if __name__ == "__main__":
+    main()
