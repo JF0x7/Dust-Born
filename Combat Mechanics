@@ -1,0 +1,47 @@
+import random
+
+class Character:
+    def __init__(self, name, health, stamina, attack, defense):
+        self.name = name
+        self.health = health
+        self.stamina = stamina
+        self.attack = attack
+        self.defense = defense
+
+    def is_alive(self):
+        return self.health > 0
+
+    def take_damage(self, damage):
+        reduced = max(0, damage - self.defense)
+        self.health -= reduced
+        print(f"{self.name} takes {reduced} damage! Health now: {self.health}")
+
+    def basic_attack(self, target):
+        if self.stamina <= 0:
+            print(f"{self.name} is too exhausted to attack!")
+            return
+        damage = random.randint(self.attack - 2, self.attack + 2)
+        print(f"{self.name} attacks {target.name} for {damage}!")
+        target.take_damage(damage)
+        self.stamina -= 5
+
+    def rest(self):
+        self.stamina += 10
+        print(f"{self.name} rests and regains stamina. Stamina now: {self.stamina}")
+
+
+# Example setup
+jeremiah = Character("Jeremiah", health=100, stamina=50, attack=15, defense=5)
+roman_soldier = Character("Roman Soldier", health=80, stamina=40, attack=12, defense=3)
+
+# Simple combat loop
+while jeremiah.is_alive() and roman_soldier.is_alive():
+    jeremiah.basic_attack(roman_soldier)
+    if roman_soldier.is_alive():
+        roman_soldier.basic_attack(jeremiah)
+
+print("Combat ended.")
+if jeremiah.is_alive():
+    print("Jeremiah is victorious!")
+else:
+    print("Jeremiah has fallen...")
